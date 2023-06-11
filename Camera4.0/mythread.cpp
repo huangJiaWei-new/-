@@ -1,0 +1,47 @@
+﻿#include "mythread.h"
+#include <QDebug>
+
+QString UIUpdater::dataFromUpd = " "; //用于接收'OnReceive'回调函数接收的数据
+int UIUpdater::flag = 0; //用于判断'OnReceive'回调函数接收的数据是否传到本线程
+
+/*--------------@brief：UIUpdater构造函数-------------*/
+UIUpdater::UIUpdater(QObject *parent) : QObject(parent)
+{
+    moveToThread(&workerThread);
+    workerThread.start();
+}
+
+
+/*--------------@brief：UIUpdater析构函数-------------*/
+UIUpdater::~UIUpdater()
+{
+    workerThread.quit();
+    workerThread.wait();
+}
+
+
+/*--------------@brief：判断'flag'的是否为1，若是则向UI线程发送信号，更新UI界面-------------*/
+void UIUpdater::working()
+{
+    qDebug() << "接收OnReceive回调函数数据的线程的线程地址: " << QThread::currentThread();
+    while(1)
+    {
+        if(flag == 1)
+        {
+            flag = 0;
+            emit updateUI(dataFromUpd);
+            //break;
+        }
+        //QThread::usleep(1);
+    }
+}
+
+
+/*--------------@brief：槽函数，接收OnReceive回调函数的数据-------------*/
+void UIUpdater::receiveDataFromUdp(const QString& data)
+{
+    qDebug() << data;
+    dataFromUpd = data;
+    flag = 1;
+}
+
